@@ -1,0 +1,27 @@
+{
+    "name": "seo-chatbot",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start"
+    },
+    "dependencies": {
+      "@radix-ui/react-alert": "^1.0.0",
+      "@radix-ui/react-card": "^1.0.0",
+      "class-variance-authority": "^0.7.0",
+      "clsx": "^2.0.0",
+      "lucide-react": "^0.263.1",
+      "next": "14.0.0",
+      "react": "^18",
+      "react-dom": "^18",
+      "tailwind-merge": "^2.0.0",
+      "tailwindcss-animate": "^1.0.7"
+    },
+    "devDependencies": {
+      "autoprefixer": "^10",
+      "postcss": "^8",
+      "tailwindcss": "^3"
+    }
+  }
