@@ -1,0 +1,265 @@
+import React, { useState } from 'react';
+import { Send, RotateCcw, Search, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import _ from 'lodash';
+
+// Configuration object for different AI providers
+const AI_PROVIDERS = {
+  OPENAI: {
+    name: 'OpenAI',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    headers: (apiKey) => ({
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    }),
+    formatRequest: (input, competitors) => ({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an SEO expert analyzing titles and meta descriptions.'
+        },
+        {
+          role: 'user',
+          content: `Analyze this content: "${input}". Competitor data: ${JSON.stringify(competitors)}`
+        }
+      ]
+    })
+  },
+  COHERE: {
+    name: 'Cohere',
+    endpoint: 'https://api.cohere.ai/v1/generate',
+    headers: (apiKey) => ({
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    }),
+    formatRequest: (input, competitors) => ({
+      model: 'command',
+      prompt: `Analyze this content: "${input}". Competitor data: ${JSON.stringify(competitors)}`,
+      max_tokens: 300
+    })
+  }
+};
+
+const SEOChatbot = () => {
+  const [input, setInput] = useState('');
+  const [conversation, setConversation] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState('OPENAI');
+  const [apiKey, setApiKey] = useState('');
+  const [error, setError] = useState('');
+
+  const simulateCompetitorData = (keyword) => {
+    return [
+      {
+        title: `Ultimate Guide to ${keyword} (2025)`,
+        metaDescription: `Learn everything about ${keyword} with our comprehensive guide. Expert tips and strategies included.`,
+        url: 'https://example.com/1',
+        ranking: 1
+      },
+      {
+        title: `How to Master ${keyword}: Pro Tips`,
+        metaDescription: `Discover proven ${keyword} techniques from industry experts. Step-by-step tutorial included.`,
+        url: 'https://example.com/2',
+        ranking: 2
+      },
+      {
+        title: `${keyword} Mastery: Complete Guide`,
+        metaDescription: `Start your journey with ${keyword} today. Comprehensive beginner-friendly guide.`,
+        url: 'https://example.com/3',
+        ranking: 3
+      }
+    ];
+  };
+
+  const analyzeContent = (input, competitors) => {
+    const analysis = {
+      title: {
+        suggestions: [
+          'Use numbers in title for better CTR',
+          'Include primary keyword near the beginning',
+          'Keep length between 50-60 characters',
+          'Add emotional triggers or power words'
+        ],
+        competitorInsights: 'Top competitors use numbers and "How to" formats frequently.'
+      },
+      metaDescription: {
+        suggestions: [
+          'Include a clear call-to-action',
+          'Maintain length between 140-160 characters',
+          'Incorporate secondary keywords naturally',
+          'Use active voice and action verbs'
+        ],
+        competitorInsights: 'Successful meta descriptions use benefit-driven language.'
+      }
+    };
+
+    return analysis;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage = {
+      type: 'user',
+      content: input
+    };
+
+    setConversation([...conversation, userMessage]);
+    setLoading(true);
+    setError('');
+
+    try {
+      // Get competitor data
+      const competitors = simulateCompetitorData(input.split(' ')[0]);
+      
+      // Analyze content
+      const analysis = analyzeContent(input, competitors);
+
+      const botResponse = {
+        type: 'bot',
+        content: (
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Title Analysis:</h3>
+              <ul className="list-disc pl-6 space-y-2">
+                {analysis.title.suggestions.map((suggestion, idx) => (
+                  <li key={idx}>{suggestion}</li>
+                ))}
+              </ul>
+              <div className="mt-2 p-2 bg-blue-50 rounded">
+                <p className="text-sm text-blue-800">
+                  <AlertCircle className="inline-block w-4 h-4 mr-1" />
+                  {analysis.title.competitorInsights}
+                </p>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Meta Description Analysis:</h3>
+              <ul className="list-disc pl-6 space-y-2">
+                {analysis.metaDescription.suggestions.map((suggestion, idx) => (
+                  <li key={idx}>{suggestion}</li>
+                ))}
+              </ul>
+              <div className="mt-2 p-2 bg-blue-50 rounded">
+                <p className="text-sm text-blue-800">
+                  <AlertCircle className="inline-block w-4 h-4 mr-1" />
+                  {analysis.metaDescription.competitorInsights}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Top Ranking Examples:</h3>
+              <div className="space-y-3">
+                {competitors.map((competitor, idx) => (
+                  <div key={idx} className="p-3 bg-gray-50 rounded">
+                    <p className="font-medium">{competitor.title}</p>
+                    <p className="text-sm text-gray-600 mt-1">{competitor.metaDescription}</p>
+                    <p className="text-xs text-gray-500 mt-1">Ranking: #{competitor.ranking}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      };
+
+      setConversation(prev => [...prev, botResponse]);
+    } catch (error) {
+      setError('Error analyzing content. Please try again.');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+      setInput('');
+    }
+  };
+
+  const handleReset = () => {
+    setConversation([]);
+    setInput('');
+    setError('');
+  };
+
+  return (
+    <Card className="w-full max-w-3xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Search className="w-6 h-6" />
+          SEO Title & Meta Description Assistant
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Alert>
+          <AlertDescription>
+            Enter your title or meta description for instant SEO analysis and suggestions!
+          </AlertDescription>
+        </Alert>
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        <div className="h-96 overflow-y-auto space-y-4 p-4 bg-gray-50 rounded-lg">
+          {conversation.map((message, idx) => (
+            <div
+              key={idx}
+              className={`flex ${
+                message.type === 'user' ? 'justify-end' : 'justify-start'
+              }`}
+            >
+              <div
+                className={`max-w-3/4 p-4 rounded-lg ${
+                  message.type === 'user'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white border'
+                }`}
+              >
+                {message.content}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-white border p-4 rounded-lg">
+                Analyzing content...
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter>
+        <form onSubmit={handleSubmit} className="flex w-full gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Enter your title or meta description..."
+            className="flex-1 p-2 border rounded-lg"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </button>
+        </form>
+      </CardFooter>
+    </Card>
+  );
+};
+
+export default SEOChatbot;
